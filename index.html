@@ -10,7 +10,7 @@
 
     <script>
 
-        const BLOCK_SIZE = 512;
+        const BLOCK_SIZE = 256;
 
         var uploadFileName, uploadFileLength, fileDataURL, qrOutput, bReceiveMode = false;
 
@@ -150,7 +150,7 @@
 
             if (bReceiveMode && !bTransferComplete) {
 
-                blockno = parseInt(qrText.slice(1, 6));
+                blockno = parseInt(qrText.slice(1, 7));
 
                 if (!isNaN(blockno) && blockno == receiveBlockNo) {
 
