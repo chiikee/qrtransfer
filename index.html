@@ -154,6 +154,16 @@
             ChangeStatus("Ready to Receive...");
             bTransferComplete = false;
         }
+	    
+		var bHideVideo = true;
+	    function ToggleVideo(){
+		    if(bHideVideo){
+				document.getElementById("qr-video").style.display = "none";
+			}else{
+				document.getElementById("qr-video").style.display = "inline";
+			}
+			bHideVideo = !bHideVideo;
+	    }
     </script>
 </head>
 
@@ -176,7 +186,7 @@
         <b>Device has camera: </b>
         <span id="cam-has-camera"></span>
         <br>
-        <video muted playsinline id="qr-video" hidden></video>
+	<video muted playsinline id="qr-video" style="display: none"></video><button onclick="toggleVideo()">Toggle Video</button>
     </div>
     <b>Detected QR code: </b>
     <p id="cam-qr-result" style="word-wrap: break-word;">None</p>
