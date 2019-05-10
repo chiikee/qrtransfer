@@ -1,451 +1,249 @@
 <html>
-
 <head>
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <link rel="stylesheet" href="light.min.css">
-
     <script src="qrious.min.js"></script>
-
     <script>
-
         const BLOCK_SIZE = 128;
-
         var uploadFileName, uploadFileLength, fileDataURL, qrOutput, bReceiveMode = false;
-
         var receiveFileName, receiveDataURL, receiveBlockNo = 0, bTransferComplete = false;
+		var blockSize = BLOCK_SIZE;
 
         function ChangeStatus(text) {
-
             document.getElementById("status").innerText = text;
-
         }
 
         function ShowDefault() {
-
             let qrText = "https://chiikee.github.io/qrtransfer/";
-
             qrOutput.value = qrText;
-
         }
 
         function ShowFileInfo() {
-
             if (uploadFileName) {
-
-                let qrText = "2" + uploadFileName;
-
+                let qrText = "2" + ("00" + blockSize).slice(-3) + uploadFileName;
                 qrOutput.value = qrText;
-
+				ChangeStatus("Ready to Send...");
             } else {
-
                 ShowDefault();
-
                 ChangeStatus("Select a File...");
-
             }
-
         }
 
         function ShowFileBlock(blockno) {
-
             if (!bReceiveMode && typeof (fileDataURL) != "undefined") {
-
-                let blockStart = blockno * BLOCK_SIZE;
-
+                let blockStart = blockno * blockSize;
                 if (blockStart > fileDataURL.length) {
-
                     ShowFileInfo();
-
                     ChangeStatus("File Transfer Complete.");
-
                 } else {
-
                     let sBlock = "";
-
                     if (blockStart < fileDataURL.length) {
-
-                        sBlock = fileDataURL.slice(blockStart, blockStart + BLOCK_SIZE);
-
+                        sBlock = fileDataURL.slice(blockStart, blockStart + blockSize);
                     }
-
                     let qrText = "3" + ("00000" + blockno).slice(-6) + sBlock;
-
                     qrOutput.value = qrText;
-
                     ChangeStatus("Displaying Block #" + blockno + "...");
-
                 }
-
             }
-
         }
 
         function ShowRequest() {
-
             if (bReceiveMode) {
-
                 receiveBlockNo = 0;
-
                 receiveDataURL = "";
-
-                let qrText = "1" + receiveFileName;
-
+                let qrText = "1" + ("00" + blockSize).slice(-3) + receiveFileName;
                 qrOutput.value = qrText;
-
                 ChangeStatus("Requesting for \"" + receiveFileName + "\"...");
-
             }
-
         }
 
         function ShowAcknowledge(blockno) {
-
             if (bReceiveMode) {
-
                 let qrText = "4" + ("00000" + blockno).slice(-6);
-
                 qrOutput.value = qrText;
-
                 ChangeStatus("Acknowledging Block #" + blockno + "...");
-
             }
-
         }
 
         function ReceiveRequest(qrText) {
-
             if (!bReceiveMode) {
-
-                receiveFileName = qrText.slice(1 - qrText.length);
-
+				blockSize = parseInt(qrText.slice(1, 4));
+				if (isNaN(blockSize)) {
+					blockSize = BLOCK_SIZE
+				}
+                receiveFileName = qrText.slice(4 - qrText.length);
                 if (receiveFileName == uploadFileName) {
-
                     ShowFileBlock(0);
-
                 }
-
             }
-
         }
 
         function ReceiveAcknowledgement(qrText) {
-
             if (!bReceiveMode) {
-
                 blockno = parseInt(qrText.slice(1, 7));
-
                 if (!isNaN(blockno)) {
-
                     ShowFileBlock(blockno + 1);
-
                 }
-
             }
-
         }
 
         function ReceiveBlock(qrText) {
-
             if (bReceiveMode && !bTransferComplete) {
-
                 blockno = parseInt(qrText.slice(1, 7));
-
                 if (!isNaN(blockno) && blockno == receiveBlockNo) {
-
                     let receiveBlock = qrText.slice(7);
-
                     receiveDataURL += receiveBlock;
-
                     receiveBlockNo++;
-
                     ShowAcknowledge(blockno);
-
-                    if (receiveBlock.length < BLOCK_SIZE) {
-
+                    if (receiveBlock.length < blockSize) {
                         let anchor = document.getElementById("downloadAnchor");
-
                         anchor.href = receiveDataURL;
-
                         anchor.download = receiveFileName;
-
                         anchor.innerHTML = "Click here to download file";
-
                         ChangeStatus("File Transfer Complete.");
-
                         bTransferComplete = true;
-
                     }
-
                 } else {
-
                     if (receiveBlockNo == 0) {
-
                         ShowRequest();
-
                     } else {
-
                         ShowAcknowledge(receiveBlockNo - 1);
-
                     }
-
                 }
-
             }
-
         }
 
         function ReceiveFileInfo(qrText) {
-
             if (bReceiveMode && !bTransferComplete) {
-
-                receiveFileName = qrText.slice(1 - qrText.length);
-
+				blockSize = parseInt(qrText.slice(1, 4));
+				if (isNaN(blockSize)) {
+					blockSize = BLOCK_SIZE;
+				}
+                receiveFileName = qrText.slice(4 - qrText.length);
                 ShowRequest();
-
             }
-
         }
 
         function HandleSwitchMode(value) {
-
             switch (value) {
-
                 case "send":
-
                     bReceiveMode = false;
-
                     document.getElementById("sendPanel").style.display = "block";
-
                     document.getElementById("receivePanel").style.display = "none";
-
+					ChangeStatus("Ready to Send...");
                     ShowFileInfo();
-
-                    ChangeStatus("Ready to Send...");
-
                     break;
-
                 case "receive":
-
                     bReceiveMode = true;
-
                     document.getElementById("sendPanel").style.display = "none";
-
                     document.getElementById("receivePanel").style.display = "block";
-
+					ChangeStatus("Ready to Receive...");
                     ShowDefault();
-
-                    ChangeStatus("Ready to Receive...");
-
                     break;
-
             }
-
         }
 
         function ResetTransfer() {
-
             receiveDataURL = "";
-
             receiveFileName = "";
-
             let anchor = document.getElementById("downloadAnchor");
-
             anchor.href = receiveDataURL;
-
             anchor.download = receiveFileName;
-
             anchor.innerHTML = "[File Not Ready]";
-
             ShowDefault();
-
             ChangeStatus("Ready to Receive...");
-
             bTransferComplete = false;
-
         }
-
     </script>
-
 </head>
 
- 
-
 <body>
-
     <canvas id="qrOutput" style="max-width:100%;height:auto;"></canvas>
-
     <br>
-
     <h1><select name="selMode" id="selMode" onchange="HandleSwitchMode(this.value)" style="display:inline">
-
             <option value="send" selected>Send Mode</option>
-
             <option value="receive">Receive Mode</option>
-
         </select><span id="status">Select a file...</span></h1>
-
     <div id="sendPanel">
-
         <input type="file" id="uploadFile" name="uploadFile" />
-
     </div>
-
     <div id="receivePanel" style="display: none">
-
         <button onclick="ResetTransfer()">Reset Transfer</button><a id="downloadAnchor">[File Not Ready]</a>
-
     </div>
-
     <hr>
-
     <h1>Scanning Status</h1>
-
     <div>
-
         <b>Device has camera: </b>
-
         <span id="cam-has-camera"></span>
-
         <br>
-
         <video muted playsinline id="qr-video" hidden></video>
-
     </div>
-
     <b>Detected QR code: </b>
-
     <p id="cam-qr-result" style="word-wrap: break-word;">None</p>
-
     <br>
-
     <b>Last detected at: </b>
-
     <span id="cam-qr-result-timestamp"></span>
-
     <script>
-
         qrOutput = new QRious({
-
             element: document.getElementById("qrOutput"),
-
             value: "",
-
             size: 500, 
             padding: 50
-
         });
-
         ShowDefault();
-
- 
-
         function handleFileSelect(evt) {
-
             let files = evt.target.files; // FileList object
-
             // Loop through the FileList and render image files as thumbnails.
-
             for (let f of files) {
-
                 uploadFileName = f.name;
-
                 let reader = new FileReader();
-
                 reader.onload = function (event) {
-
                     fileDataURL = event.target.result;
-
                     ShowFileInfo();
-
                     //console.log("File contents: " + contents);
-
                };
-
                 reader.onerror = function (event) {
-
                     console.error("File could not be read! Code " + event.target.error.code);
-
                 };
-
                 reader.readAsDataURL(f);
-
                 //reader.readAsArrayBuffer(f);
-
             }
-
         }
-
         document.getElementById('uploadFile').addEventListener('change', handleFileSelect, false);
-
     </script>
 
     <script type="module">
-
         import QrScanner from "./qr-scanner.min.js";
-
         QrScanner.WORKER_PATH = './qr-scanner-worker.min.js';
-
         const video = document.getElementById('qr-video');
-
         const camHasCamera = document.getElementById('cam-has-camera');
-
         const camQrResult = document.getElementById('cam-qr-result');
-
         const camQrResultTimestamp = document.getElementById('cam-qr-result-timestamp');
-
         function setResult(label, result) {
-
             label.textContent = result;
-
             camQrResultTimestamp.textContent = new Date().toString();
-
             label.style.color = 'teal';
-
             clearTimeout(label.highlightTimeout);
-
             label.highlightTimeout = setTimeout(() => label.style.color = 'inherit', 100);
-
             switch (result.charAt(0)) {
-
                 case "1":
-
                     ReceiveRequest(result);
-
                     break;
-
                 case "2":
-
                     ReceiveFileInfo(result);
-
                     break;
-
                 case "3":
-
                     ReceiveBlock(result);
-
                     break;
-
                 case "4":
-
                     ReceiveAcknowledgement(result);
-
                     break;
-
             }
-
         }
-
         // ####### Web Cam Scanning #######
-
         QrScanner.hasCamera().then(hasCamera => camHasCamera.textContent = hasCamera);
-
         const scanner = new QrScanner(video, result => setResult(camQrResult, result));
-
         scanner.start();
-
     </script>
-
 </body>
 </html>
